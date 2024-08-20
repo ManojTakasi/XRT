@@ -296,13 +296,22 @@ static inline void xocl_memcpy_toio(void *iomem, void *buf, u32 size)
 	iowrite32(val, addr)
 
 /* xclbin helpers */
-#define sizeof_sect(sect, data) \
+/* #define sizeof_sect(sect, data) \
 ({ \
 	size_t ret; \
 	size_t data_size; \
 	data_size = (sect) ? sect->m_count * sizeof(typeof(sect->data)) : 0; \
 	ret = (sect) ? offsetof(typeof(*sect), data) + data_size : 0; \
 	(ret); \
+})
+*/
+#define sizeof_sect(sect, data) \
+({ \
+    size_t ret = 0; \
+    if (sect) { \
+        ret = offsetof(typeof(*sect), data) + sect->m_count * sizeof(*sect->data); \
+    } \
+    ret; \
 })
 
 #define	XOCL_PL_TO_PCI_DEV(pldev)		\
@@ -444,7 +453,7 @@ struct xocl_subdev_priv {
 	unsigned long		debug_hdl;
 	u32			inst_idx;
 	u32			data_sz;
-	u64			data[1];
+	u64			data[];
 };
 
 #define INVALID_INST_INDEX	0xFFFF
