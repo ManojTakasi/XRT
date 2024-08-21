@@ -471,7 +471,7 @@ static inline void *xocl_subdev_priv_alloc(u32 size)
 {
 	struct xocl_subdev_priv *priv;
 
-	priv = vzalloc(sizeof(*priv) + size);
+	priv = vzalloc(sizeof(*priv) + sizeof(u64) +  size);
 	if (!priv)
 		return NULL;
 

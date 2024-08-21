@@ -829,7 +829,7 @@ int xocl_refresh_subdevs(struct xocl_dev *xdev)
 	struct xcl_mailbox_req	*mb_req = NULL;
 	size_t reqlen = struct_size(mb_req, data, 1) + data_len;
 	struct xcl_subdev	*resp = NULL;
-	size_t resp_len = sizeof(*resp) + XOCL_MSG_SUBDEV_DATA_LEN;
+	size_t resp_len = struct_size(resp,data,1) + XOCL_MSG_SUBDEV_DATA_LEN;
 	char *blob = NULL;
 	char *tmp = NULL;
 	u32 blob_len = 0;

@@ -234,7 +234,7 @@ static int hwmon_sdm_read_from_peer(struct platform_device *pdev, int repo_type,
                                     uint64_t data_args)
 {
 	size_t data_len = sizeof(struct xcl_mailbox_subdev_peer);
-	size_t reqlen = sizeof(struct xcl_mailbox_req) + data_len;
+	size_t reqlen = sizeof(struct xcl_mailbox_req) + sizeof(int32_t)+ data_len;
 	struct xcl_mailbox_subdev_peer subdev_peer = {0};
 	xdev_handle_t xdev = xocl_get_xdev(pdev);
 	struct xcl_mailbox_req *mb_req = NULL;

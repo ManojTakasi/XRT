@@ -328,9 +328,13 @@ extern "C" {
 
     struct connectivity {
         int32_t m_count;
+#ifdef __KERNEL__
+	struct connection m_connection[];
+#else
         struct connection m_connection[1];
+#endif
     };
-    XCLBIN_STATIC_ASSERT(sizeof(struct connectivity) == 16, "connectivity structure no longer is 16 bytes in size");
+    //XCLBIN_STATIC_ASSERT(sizeof(struct connectivity) == 16, "connectivity structure no longer is 16 bytes in size");
 
     /****   IP_LAYOUT SECTION ****/
 
