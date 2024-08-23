@@ -55,7 +55,12 @@
  */
 struct xgq_cmd_start_cuidx {
 	struct xgq_cmd_sq_hdr hdr;
+#ifdef __KERNEL__
+	uint32_t data[]; // NOLINT
+#else
 	uint32_t data[1]; // NOLINT
+#endif
+
 };
 
 /**

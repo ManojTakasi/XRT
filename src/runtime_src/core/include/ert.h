@@ -108,7 +108,11 @@ struct ert_packet {
     };
     uint32_t header;
   };
+#ifdef  __KERNEL__
+  uint32_t data[];   /* count number of words */
+#else
   uint32_t data[1];   /* count number of words */
+#endif
 };
 
 /**
@@ -146,8 +150,12 @@ struct ert_start_kernel_cmd {
   };
 
   /* payload */
-  uint32_t cu_mask;              /* mandatory cu mask */
+  uint32_t cu_mask;  /* mandatory cu mask */
+#ifdef __KERNEL__
+  uint32_t data[];              /* count-1 number of words */
+#else
   uint32_t data[1];              /* count-1 number of words */
+#endif
 };
 
 /**

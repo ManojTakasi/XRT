@@ -488,15 +488,31 @@ static long xocl_drm_ioctl(struct file *filp,
 {
 	return drm_ioctl(filp, cmd, arg);
 }
+static int xocl_drm_open(struct inode *inode, struct file *filp)
+{
+        static int open_cnt = 0;
+
+        open_cnt++;
+        printk("************* %s %d : Count %d\n", __func__, __LINE__, open_cnt);
+        return drm_open(inode, filp);
+}
+static int xocl_drm_release(struct inode *inode, struct file *filp)
+{
+        static int close_cnt = 0;
+
+        close_cnt++;
+        printk("************* %s %d : Count %d\n", __func__, __LINE__, close_cnt);
+        return drm_release(inode, filp);
+}
 
 static const struct file_operations xocl_driver_fops = {
-	.owner		= THIS_MODULE,
-	.open		= drm_open,
-	.mmap		= xocl_mmap,
-	.poll		= xocl_poll,
-	.read		= drm_read,
-	.unlocked_ioctl = xocl_drm_ioctl,
-	.release	= drm_release,
+        .owner          = THIS_MODULE,
+        .open           = xocl_drm_open,
+        .mmap           = xocl_mmap,
+        .poll           = xocl_poll,
+        .read           = drm_read,
+        .unlocked_ioctl = xocl_drm_ioctl,
+        .release        = xocl_drm_release,
 };
 
 static const struct vm_operations_struct xocl_vm_ops = {

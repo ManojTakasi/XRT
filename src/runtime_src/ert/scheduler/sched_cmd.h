@@ -99,7 +99,7 @@ static inline void cmd_kv_args(struct sched_cmd *cu_cmd, uint64_t *start, uint32
 	struct xgq_cmd_start_cuidx_kv *cmd = (struct xgq_cmd_start_cuidx_kv *)(uintptr_t)cu_cmd->cc_addr;
 
 	*start = (uint64_t)(uintptr_t)cmd->data;
-	*size = cmd_payload_size(cu_cmd) - (sizeof(struct xgq_cmd_start_cuidx_kv) -
+	*size = cmd_payload_size(cu_cmd) - (sizeof(struct xgq_cmd_start_cuidx_kv) + sizeof(uint32_t)-
 		sizeof(struct xgq_cmd_sq_hdr) - sizeof(cmd->data));
 }
 
