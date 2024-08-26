@@ -73,6 +73,13 @@ static int xocl_bo_mmap(struct file *filp, struct vm_area_struct *vma)
 	DRM_ENTER("BO map pgoff 0x%lx, size 0x%lx",
 		vma->vm_pgoff, vma->vm_end - vma->vm_start);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
+        vma->vm_flags |= VM_IO;
+        vma->vm_flags |= VM_RESERVED;
+#else 
+        vm_flags_set(vma, VM_IO | VM_RESERVED);
+#endif
+
 	ret = drm_gem_mmap(filp, vma);
 	if (ret)
 		return ret;
