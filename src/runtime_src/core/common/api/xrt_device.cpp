@@ -10,6 +10,7 @@
 #include "core/include/xrt/xrt_device.h"
 #include "core/include/xrt/xrt_aie.h"
 
+#include "core/common/aie_freq_utils.h"
 #include "core/common/device.h"
 #include "core/common/info_aie.h"
 #include "core/common/info_memory.h"
@@ -19,8 +20,8 @@
 #include "core/common/query_requests.h"
 #include "core/common/sensor.h"
 #include "core/common/system.h"
-#include "core/common/trace.h"
 #include "core/common/sysinfo.h"
+#include "core/common/trace.h"
 
 #include "device_int.h"
 #include "handle.h"
@@ -529,6 +530,26 @@ write_aie_reg(pid_t pid, uint16_t context_id, uint16_t col, uint16_t row, uint32
       }
     });
 }
+double
+device::
+get_aie_freq(uint32_t partition_id) const
+{
+  return xrt_core::aie_freq::get_aie_part_freq(get_handle(), partition_id);
+}
+bool
+device::
+set_aie_freq(const std::string& freq_str, uint32_t partition_id) const
+{
+  return xrt_core::aie_freq::set_aie_part_freq(get_handle(), partition_id, freq_str);
+}
+
+bool
+device::
+set_aie_freq(uint64_t freq_hz, uint32_t partition_id) const
+{
+  return xrt_core::aie_freq::set_aie_part_freq_hz(get_handle(), partition_id, freq_hz);
+}
+
 } // xrt::aie
 
 ////////////////////////////////////////////////////////////////

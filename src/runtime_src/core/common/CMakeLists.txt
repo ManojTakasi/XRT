@@ -23,6 +23,7 @@ else()
 endif()
 
 add_library(core_common_library_objects OBJECT
+  aie_freq_utils.cpp
   config_reader.cpp
   debug.cpp
   debug_ip.cpp

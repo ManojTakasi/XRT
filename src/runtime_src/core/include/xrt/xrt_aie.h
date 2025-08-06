@@ -184,7 +184,45 @@ public:
   XCL_DRIVER_DLLESPEC
   bool
   write_aie_reg(pid_t pid, uint16_t context_id, uint16_t col, uint16_t row, uint32_t reg_addr, uint32_t reg_val);
+  /**
+   * get_aie_freq() - Get AIE partition clock frequency
+   *
+   * @param partition_id
+   *   AIE partition identifier (defaults to 1)
+   * @return
+   *   Clock frequency in Hz
+   */
+  XCL_DRIVER_DLLESPEC
+  double get_aie_freq(uint32_t partition_id=1) const;
+  /**
+   * set_freq() - Set AIE partition clock frequency from string
+   *
+   * @param freq_str
+   *   Frequency string with units (e.g., "400M", "1.2G", "800K")
+   * @param partition_id
+   *   AIE partition identifier (defaults to 1)
+   * @return
+   *   true if successful, false otherwise
+   *
+   * Supports units: B (Hz), K (KHz), M (MHz), G (GHz)
+   */
+  XCL_DRIVER_DLLESPEC
+  bool
+  set_aie_freq(const std::string& freq_str, uint32_t partition_id = 1) const;
 
+  /**
+   * set_freq() - Set AIE partition clock frequency from Hz value
+   *
+   * @param freq_hz
+   *   Frequency in Hz to set
+   * @param partition_id
+   *   AIE partition identifier (defaults to 1)
+   * @return
+   *   true if successful, false otherwise
+   */
+  XCL_DRIVER_DLLESPEC
+  bool
+  set_aie_freq(uint64_t freq_hz, uint32_t partition_id = 1) const;
 private:
   XCL_DRIVER_DLLESPEC
   void
