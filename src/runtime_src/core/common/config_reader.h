@@ -658,6 +658,18 @@ get_qdma_aio_enable()
   return value;
 }
 
+/**
+ * When true, GMIO enqueueBD uses batched io_uring async submits
+ * (SetAddrOffsetLenAsync / DmaWriteBdAsync / PushBdToQueueAsync + one wait).
+ * When false (default), synchronous AIE DMA APIs are used throughout.
+ */
+inline bool
+get_io_uring()
+{
+  static bool value = detail::get_bool_value("Runtime.io_uring", false);
+  return value;
+}
+
 inline std::string
 get_hw_em_driver()
 {
