@@ -86,6 +86,7 @@ zocl_xclbin_read_axlf(struct drm_zocl_dev *zdev, struct drm_zocl_axlf *axlf_obj,
 	int ret = 0;
 	struct drm_zocl_slot *slot = NULL;
 	uint32_t flags = 0;
+	bool dt_overlay = false;
 	uint8_t hw_gen = axlf_obj->hw_gen;
 
 	/* Download the XCLBIN from user space to kernel space and validate */
@@ -202,6 +203,7 @@ zocl_xclbin_read_axlf(struct drm_zocl_dev *zdev, struct drm_zocl_axlf *axlf_obj,
 				    slot);
 		if (ret)
 			goto out0;
+		dt_overlay = true;
 
 	} else
 #endif
@@ -321,6 +323,9 @@ zocl_xclbin_read_axlf(struct drm_zocl_dev *zdev, struct drm_zocl_axlf *axlf_obj,
 	if (!zocl_xclbin_is_aie_only(axlf)) {
 		/* Destroy the CUs specific for this slot */
 		zocl_destroy_cu_slot(zdev, slot->slot_idx);
+
+		if (dt_overlay)
+			zocl_cu_intc_refresh(zdev);
 
 		/* Create the CUs for this slot */
 		ret = zocl_create_cu(zdev, slot);
