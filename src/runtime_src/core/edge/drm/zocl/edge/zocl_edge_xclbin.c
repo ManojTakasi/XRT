@@ -216,9 +216,17 @@ zocl_xclbin_read_axlf(struct drm_zocl_dev *zdev, struct drm_zocl_axlf *axlf_obj,
 			goto out0;
 		}
 
-		ret = zocl_load_sect(zdev, axlf, xclbin, PDI, slot);
-		if (ret)
-			goto out0;
+		if (axlf_obj->za_dtbo_path_len) {
+			/*
+			 * PL image and dtbo were already loaded by libdfx
+			 * in userspace (PDI/OVERLAY xclbin path).
+			 */
+			DRM_INFO("Skipping kernel PDI load; device programmed via libdfx\n");
+		} else {
+			ret = zocl_load_sect(zdev, axlf, xclbin, PDI, slot);
+			if (ret)
+				goto out0;
+		}
 
 		/* Mark AIE out of reset state after load PDI */
 		if (slot->aie) {
@@ -324,7 +332,7 @@ zocl_xclbin_read_axlf(struct drm_zocl_dev *zdev, struct drm_zocl_axlf *axlf_obj,
 		/* Destroy the CUs specific for this slot */
 		zocl_destroy_cu_slot(zdev, slot->slot_idx);
 
-		if (dt_overlay)
+		if (dt_overlay || axlf_obj->za_dtbo_path_len)
 			zocl_cu_intc_refresh(zdev);
 
 		/* Create the CUs for this slot */
