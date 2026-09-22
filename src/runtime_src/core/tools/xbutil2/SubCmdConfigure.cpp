@@ -75,7 +75,7 @@ SubCmdConfigure::execute(const SubCmdOptions& _options) const
       std::cerr << error_str <<std::endl;
     }
     else {
-      std::cerr << "ERROR: Suboption missing" << std::endl;
+      std::cerr << "ERROR: Suboption missing. Please select one of the sub-options listed below." << std::endl;
     }
     printHelp();
     throw xrt_core::error(std::errc::operation_canceled);
