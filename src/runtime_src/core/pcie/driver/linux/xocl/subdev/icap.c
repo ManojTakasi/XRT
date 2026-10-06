@@ -1052,12 +1052,14 @@ static long icap_download(struct icap *icap, const char *buffer,
 	struct XHwIcap_Bit_Header bit_header = { 0 };
 	unsigned numCharsRead = DMA_HWICAP_BITFILE_BUFFER_SIZE;
 	unsigned byte_read;
+	unsigned int hdr_size;
 
 	BUG_ON(!buffer);
 	BUG_ON(!length);
 
-	if (xrt_xclbin_parse_header(buffer,
-		DMA_HWICAP_BITFILE_BUFFER_SIZE, &bit_header)) {
+	hdr_size = (length > DMA_HWICAP_BITFILE_BUFFER_SIZE) ?
+		DMA_HWICAP_BITFILE_BUFFER_SIZE : (unsigned int)length;
+	if (xrt_xclbin_parse_header(buffer, hdr_size, &bit_header)) {
 		err = -EINVAL;
 		goto free_buffers;
 	}

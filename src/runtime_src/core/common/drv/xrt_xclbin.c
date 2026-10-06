@@ -15,11 +15,83 @@
 #include "xclbin.h"
 #include "xrt_xclbin.h"
 
+/* True when [index, index + nbytes) lies inside the caller buffer. */
+static int
+hdr_need(unsigned int index, unsigned int nbytes, unsigned int size)
+{
+	if (!nbytes || index > size || nbytes > size - index)
+		return -1;
+	return 0;
+}
+
+static int
+hdr_u8(const unsigned char *data, unsigned int size, unsigned int *index,
+       unsigned int *val)
+{
+	if (hdr_need(*index, 1, size))
+		return -1;
+	*val = data[(*index)++];
+	return 0;
+}
+
+static int
+hdr_be16(const unsigned char *data, unsigned int size, unsigned int *index,
+	 unsigned int *val)
+{
+	unsigned int hi, lo;
+
+	if (hdr_u8(data, size, index, &hi) || hdr_u8(data, size, index, &lo))
+		return -1;
+	*val = (hi << 8) | lo;
+	return 0;
+}
+
+static int
+hdr_be32(const unsigned char *data, unsigned int size, unsigned int *index,
+	 unsigned int *val)
+{
+	unsigned int b0, b1, b2, b3;
+
+	if (hdr_u8(data, size, index, &b0) || hdr_u8(data, size, index, &b1) ||
+	    hdr_u8(data, size, index, &b2) || hdr_u8(data, size, index, &b3))
+		return -1;
+	*val = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
+	return 0;
+}
+
+/*
+ * Read a length-prefixed, NUL-terminated string. len == 0 is rejected:
+ * vmalloc(0) returns NULL and the following len-1 check would fault.
+ */
+static int
+hdr_string(const unsigned char *data, unsigned int size, unsigned int *index,
+	   unsigned int tag, unsigned char **out)
+{
+	unsigned int val, len, i;
+
+	if (hdr_u8(data, size, index, &val) || val != tag)
+		return -1;
+	if (hdr_be16(data, size, index, &len) || len == 0)
+		return -1;
+	if (hdr_need(*index, len, size))
+		return -1;
+
+	*out = vmalloc(len);
+	if (!*out)
+		return -1;
+
+	for (i = 0; i < len; i++)
+		(*out)[i] = data[(*index)++];
+
+	if ((*out)[len - 1] != '\0')
+		return -1;
+	return 0;
+}
+
 int xrt_xclbin_parse_header(const unsigned char *data,
 	unsigned int size, struct XHwIcap_Bit_Header *header)
 {
 	unsigned int i;
-	unsigned int len;
 	unsigned int tmp;
 	unsigned int index;
 
@@ -30,123 +102,62 @@ int xrt_xclbin_parse_header(const unsigned char *data,
 	 * failure.
 	 */
 	header->HeaderLength = XHI_BIT_HEADER_FAILURE;
+	header->DesignName = NULL;
+	header->PartName = NULL;
+	header->Date = NULL;
+	header->Time = NULL;
 
-	/* Get "Magic" length */
-	header->MagicLength = data[index++];
-	header->MagicLength = (header->MagicLength << 8) | data[index++];
+	/* MagicLength counts the magic bytes plus the trailing NUL consumed
+	 * below, so it must be at least 1 and the whole run must fit.
+	 */
+	if (hdr_be16(data, size, &index, &header->MagicLength))
+		return -1;
+	if (header->MagicLength < 1 ||
+	    hdr_need(index, header->MagicLength, size))
+		return -1;
 
 	/* Read in "magic" */
 	for (i = 0; i < header->MagicLength - 1; i++) {
 		tmp = data[index++];
-		if (i%2 == 0 && tmp != XHI_EVEN_MAGIC_BYTE)
+		if (i % 2 == 0 && tmp != XHI_EVEN_MAGIC_BYTE)
 			return -1;   /* INVALID_FILE_HEADER_ERROR */
 
-		if (i%2 == 1 && tmp != XHI_ODD_MAGIC_BYTE)
+		if (i % 2 == 1 && tmp != XHI_ODD_MAGIC_BYTE)
 			return -1;   /* INVALID_FILE_HEADER_ERROR */
-
 	}
 
 	/* Read null end of magic data. */
 	tmp = data[index++];
 
 	/* Read 0x01 (short) */
-	tmp = data[index++];
-	tmp = (tmp << 8) | data[index++];
-
-	/* Check the "0x01" half word */
-	if (tmp != 0x01)
+	if (hdr_be16(data, size, &index, &tmp) || tmp != 0x01)
 		return -1;	 /* INVALID_FILE_HEADER_ERROR */
 
-	/* Read 'a' */
-	tmp = data[index++];
-	if (tmp != 'a')
-		return -1;	  /* INVALID_FILE_HEADER_ERROR	*/
-
-	/* Get Design Name length */
-	len = data[index++];
-	len = (len << 8) | data[index++];
-
-	/* allocate space for design name and final null character. */
-	header->DesignName = vmalloc(len);
-
-	/* Read in Design Name */
-	for (i = 0; i < len; i++)
-		header->DesignName[i] = data[index++];
-
-
-	if (header->DesignName[len-1] != '\0')
-		return -1;
-
-	/* Read 'b' */
-	tmp = data[index++];
-	if (tmp != 'b')
-		return -1;	/* INVALID_FILE_HEADER_ERROR */
-
-	/* Get Part Name length */
-	len = data[index++];
-	len = (len << 8) | data[index++];
-
-	/* allocate space for part name and final null character. */
-	header->PartName = vmalloc(len);
-
-	/* Read in part name */
-	for (i = 0; i < len; i++)
-		header->PartName[i] = data[index++];
-
-	if (header->PartName[len-1] != '\0')
-		return -1;
-
-	/* Read 'c' */
-	tmp = data[index++];
-	if (tmp != 'c')
-		return -1;	/* INVALID_FILE_HEADER_ERROR */
-
-	/* Get date length */
-	len = data[index++];
-	len = (len << 8) | data[index++];
-
-	/* allocate space for date and final null character. */
-	header->Date = vmalloc(len);
-
-	/* Read in date name */
-	for (i = 0; i < len; i++)
-		header->Date[i] = data[index++];
-
-	if (header->Date[len - 1] != '\0')
-		return -1;
-
-	/* Read 'd' */
-	tmp = data[index++];
-	if (tmp != 'd')
-		return -1;	/* INVALID_FILE_HEADER_ERROR  */
-
-	/* Get time length */
-	len = data[index++];
-	len = (len << 8) | data[index++];
-
-	/* allocate space for time and final null character. */
-	header->Time = vmalloc(len);
-
-	/* Read in time name */
-	for (i = 0; i < len; i++)
-		header->Time[i] = data[index++];
-
-	if (header->Time[len - 1] != '\0')
-		return -1;
+	if (hdr_string(data, size, &index, 'a', &header->DesignName))
+		goto out_free;
+	if (hdr_string(data, size, &index, 'b', &header->PartName))
+		goto out_free;
+	if (hdr_string(data, size, &index, 'c', &header->Date))
+		goto out_free;
+	if (hdr_string(data, size, &index, 'd', &header->Time))
+		goto out_free;
 
 	/* Read 'e' */
-	tmp = data[index++];
-	if (tmp != 'e')
-		return -1;	/* INVALID_FILE_HEADER_ERROR */
+	if (hdr_u8(data, size, &index, &tmp) || tmp != 'e')
+		goto out_free;	/* INVALID_FILE_HEADER_ERROR */
 
-	/* Get byte length of bitstream */
-	header->BitstreamLength = data[index++];
-	header->BitstreamLength = (header->BitstreamLength << 8) | data[index++];
-	header->BitstreamLength = (header->BitstreamLength << 8) | data[index++];
-	header->BitstreamLength = (header->BitstreamLength << 8) | data[index++];
+	/* Bitstream payload is checked by the caller against the full section.
+	 * Only these 4 length bytes must lie inside the header window.
+	 */
+	if (hdr_be32(data, size, &index, &header->BitstreamLength))
+		goto out_free;
 	header->HeaderLength = index;
 
 	return 0;
+
+out_free:
+	xrt_xclbin_free_header(header);
+	return -1;
 }
 
 void
@@ -156,6 +167,10 @@ xrt_xclbin_free_header(struct XHwIcap_Bit_Header *header)
 	vfree(header->PartName);
 	vfree(header->Date);
 	vfree(header->Time);
+	header->DesignName = NULL;
+	header->PartName = NULL;
+	header->Date = NULL;
+	header->Time = NULL;
 }
 
 char *
